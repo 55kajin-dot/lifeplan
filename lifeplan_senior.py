@@ -251,7 +251,7 @@ with t1:
           </div>
 
           <div style="margin-top:0.55rem; color:#555; font-size:0.93rem; line-height:1.75;">
-            ※まずは「年齢」と「貯蓄額」だけ入れて、下の
+            ※まずは試しに「年齢」と「貯蓄額」だけ入れて、下の
             <span style="font-size:1.10rem; font-weight:900; color:#333;">【計算】</span>
             をポン！数字を変えて、またポン！ それだけ。結果を見て、AIのコメントをチェック。（目安としてご利用ください）
           </div>
@@ -261,7 +261,7 @@ with t1:
         unsafe_allow_html=True
     )
 
-    st.caption("生活費8項目と介護費は月額（万円/月）。それ以外（年収・一時収入・一時支出・貯蓄残高）は年額（万円）。年次（1年刻み）で計算します。")
+    st.caption("生活費8項目と介護費は月額（万円/月）。それ以外（年収・一時収入・一時支出・貯蓄残高）は年額（万円）。年次（1年刻み）で計算します。シニアが作りました。")
 
 with t2:
     img_path = os.path.join(os.path.dirname(__file__), TITLE_IMAGE_FILENAME)
@@ -1376,3 +1376,4 @@ if df_long is not None and df_table is not None:
         )
 else:
     st.info("まだ計算していません。入力後、中央の「計算」ボタンを押してください。")
+
