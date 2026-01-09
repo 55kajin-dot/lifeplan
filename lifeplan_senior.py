@@ -1377,4 +1377,12 @@ if df_long is not None and df_table is not None:
 else:
     st.info("まだ計算していません。入力後、中央の「計算」ボタンを押してください。")
 
+# ===== フッター（著作権表示）=====
+st.markdown(
+    "<hr><div style='text-align:center; color:#888; font-size:0.85em;'>"
+    "© 作成者／無断転載・商用利用不可"
+    "</div>",
+    unsafe_allow_html=True
+)
+
 
