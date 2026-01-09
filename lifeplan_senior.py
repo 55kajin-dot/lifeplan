@@ -261,7 +261,7 @@ with t1:
         unsafe_allow_html=True
     )
 
-    st.caption("生活費8項目と介護費は月額（万円/月）。それ以外（年収・一時収入・一時支出・貯蓄残高）は年額（万円）。年次（1年刻み）で計算します。シニアが作りました。")
+    st.caption("生活費8項目と介護費は月額（万円/月）。それ以外（年収・一時収入・一時支出）は年額（万円）。年次（1年刻み）で計算します。※シニアが作りました。")
 
 with t2:
     img_path = os.path.join(os.path.dirname(__file__), TITLE_IMAGE_FILENAME)
@@ -1376,4 +1376,5 @@ if df_long is not None and df_table is not None:
         )
 else:
     st.info("まだ計算していません。入力後、中央の「計算」ボタンを押してください。")
+
 
