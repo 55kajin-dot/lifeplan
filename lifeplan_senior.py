@@ -1184,7 +1184,7 @@ with st.form("lifeplan_form", clear_on_submit=False):
             "h_spend",
             "夫の一時支出（年額・万円）",
             DEFAULT["h_spend"],
-            note_text="※車買換え、海外旅行、子の結婚費用、葬式代など　※数値入力後、計算に反映させるため必ず右の使用ボタン欄を☑にしてください"
+            note_text="※車買換え、海外旅行、子の結婚費用、配偶者の葬式代など　※数値入力後、計算に反映させるため必ず右の使用ボタン欄を☑にしてください"
         )
     with R2:
         w_spends = build_lumps(
@@ -1384,6 +1384,7 @@ st.markdown(
     "</div>",
     unsafe_allow_html=True
 )
+
 
 
 
