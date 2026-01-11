@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import html
@@ -253,7 +254,7 @@ with t1:
           <div style="margin-top:0.55rem; color:#555; font-size:0.93rem; line-height:1.75;">
             ※まずは試しに「年齢」と「貯蓄額」だけ入れて、下の
             <span style="font-size:1.10rem; font-weight:900; color:#333;">【計算】</span>
-            をポン！数字を変えて、またポン！ それだけ。結果を見て、AIのコメントをチェック。（目安としてご利用ください）
+            をポン！数字を変えて、またポン！ それだけ。結果を見て、AIのコメントをチェック。（目安としてご利用ください）　シニアは現金が重要。すべて現金ベースで計算します。
           </div>
 
         </div>
@@ -1068,6 +1069,7 @@ with st.form("lifeplan_form", clear_on_submit=False):
             h_inc_after = NI_FLOAT("変更後年収(万円)", "h_inc_after", 0.0, 20000.0, DEFAULT["h_inc_after"], 0.1)
         with a[4]:
             h_g2 = NI_FLOAT("上昇率(％)", "h_g2", -100.0, 100.0, DEFAULT["h_g2"], 0.1)
+        st.caption("※年金、給料、パート代、利息、配当金など（株式や不動産等の含み益は入れないでください）")
 
         h_lumps = build_lumps(
             "h_lump",
