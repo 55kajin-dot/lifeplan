@@ -91,6 +91,13 @@ TITLE_IMAGE_FILENAME = "senior_couple.png"
 # ページ設定
 # =========================
 st.set_page_config(page_title=APP_TITLE, layout="wide")
+st.markdown("""
+<style>
+div[data-baseweb="input"] input {
+    font-size: 1.2rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 # =========================
