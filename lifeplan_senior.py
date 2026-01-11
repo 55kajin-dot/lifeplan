@@ -259,7 +259,7 @@ with t1:
           </div>
 
           <div style="margin-top:0.55rem; color:#555; font-size:0.93rem; line-height:1.75;">
-            ※まずは試しに「年齢」と「貯蓄額」だけ入れてみて、いちばん下の赤い
+            ※まずは試しに自分の「年齢」と「貯蓄額」だけ入れてみて、いちばん下の赤い
             <span style="font-size:1.10rem; font-weight:900; color:#333;">【計算】</span>
             ボタンをポン！ほかの数字も変えてみては、またポン！ ただそれだけ。あとは結果を見て、AIのコメントをチェック。（目安としてご利用ください）　※シニアは現金が重要です。すべて現金ベースで計算します。
           </div>
@@ -1393,6 +1393,7 @@ st.markdown(
     "</div>",
     unsafe_allow_html=True
 )
+
 
 
 
