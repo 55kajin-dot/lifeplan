@@ -1,4 +1,5 @@
 
+
 import streamlit as st
 import pandas as pd
 import html
@@ -1076,7 +1077,7 @@ with st.form("lifeplan_form", clear_on_submit=False):
             h_inc_after = NI_FLOAT("変更後年収(万円)", "h_inc_after", 0.0, 20000.0, DEFAULT["h_inc_after"], 0.1)
         with a[4]:
             h_g2 = NI_FLOAT("上昇率(％)", "h_g2", -100.0, 100.0, DEFAULT["h_g2"], 0.1)
-        st.caption("※年金、給料、パート代、利息、配当金など（株式や不動産等の含み益は入れないでください）")
+        st.caption("※年金、給料、パート代、利息、配当金、家賃収入など（株式や不動産等の含み益は入れないでください）")
 
         h_lumps = build_lumps(
             "h_lump",
@@ -1098,6 +1099,14 @@ with st.form("lifeplan_form", clear_on_submit=False):
             w_inc_after = NI_FLOAT("変更後年収(万円)", "w_inc_after", 0.0, 20000.0, DEFAULT["w_inc_after"], 0.1)
         with b[4]:
             w_g2 = NI_FLOAT("上昇率(％)", "w_g2", -100.0, 100.0, DEFAULT["w_g2"], 0.1)
+        st.markdown(
+        "<div style='visibility:hidden; font-size:0.85rem; line-height:1.2;'>"
+        "※年金、給料、パート代、利息、配当金など（株式や不動産等の含み益は入れないでください）"
+        "</div>",
+        unsafe_allow_html=True
+    )
+# ★もう1行分だけ下げるスペーサー（調整用）
+        st.markdown("<div style='height:22px;'></div>", unsafe_allow_html=True)
 
         w_lumps = build_lumps(
             "w_lump",
