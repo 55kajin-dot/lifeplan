@@ -283,37 +283,39 @@ with t2:
 # =========================
 # matplotlib 日本語フォント（□対策）
 # =========================
-def set_japanese_font_for_matplotlib():
-    import os
-    import matplotlib
-    from matplotlib import font_manager
+def make_chart_png(df_long: pd.DataFrame, y_col: str, title: str) -> bytes:
+    # ★本番では debug=False にします（画面にログを出さない）
+    fp = set_japanese_font_for_matplotlib(debug=False)
 
-    matplotlib.rcParams["axes.unicode_minus"] = False
+    fig = plt.figure(figsize=(10, 4.2))
+    ax = fig.add_subplot(111)
 
-    here = os.path.dirname(__file__)
+    # ゼロ線（赤）
+    ax.axhline(0, color="red", linewidth=2, linestyle="--")
 
-    font_candidates = [
-        os.path.join(here, "fonts", "NotoSansjp-Regular.otf"),
-    ]
+    ax.plot(df_long["年目"], df_long[y_col], marker="o")
 
-    for fp in font_candidates:
-        if os.path.exists(fp):
-            font_manager.fontManager.addfont(fp)
-            font_name = font_manager.FontProperties(fname=fp).get_name()
-            matplotlib.rcParams["font.family"] = font_name
-            return
+    # ★ここが本命：フォントを直指定（オンラインでも□になりにくい）
+    if fp is not None:
+        ax.set_title(title, fontproperties=fp)
+        ax.set_xlabel("年目", fontproperties=fp)
+        ax.set_ylabel("万円", fontproperties=fp)
+        for lab in ax.get_xticklabels() + ax.get_yticklabels():
+            lab.set_fontproperties(fp)
+    else:
+        # フォントが取れない時の保険（ローカルならOSフォントで出ることが多い）
+        ax.set_title(title)
+        ax.set_xlabel("年目")
+        ax.set_ylabel("万円")
 
-    candidates = [
-        "Yu Gothic", "Yu Gothic UI", "Meiryo", "MS Gothic", "MS PGothic",
-        "Hiragino Sans", "Noto Sans CJK JP", "IPAexGothic", "TakaoGothic"
-    ]
-    available = {f.name for f in font_manager.fontManager.ttflist}
-    for name in candidates:
-        if name in available:
-            matplotlib.rcParams["font.family"] = name
-            matplotlib.rcParams["axes.unicode_minus"] = False
-            return
-    matplotlib.rcParams["axes.unicode_minus"] = False
+    ax.grid(True)
+
+    buf = BytesIO()
+    fig.tight_layout()
+    fig.savefig(buf, format="png", dpi=200)
+    plt.close(fig)
+    return buf.getvalue()
+
 
 
 # =========================
@@ -724,16 +726,89 @@ def build_inputs_table(inputs: dict) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["区分", "項目", "入力値"])
 
 
+
+
+
+
+# =========================
+# matplotlib 日本語フォント（□対策：オンラインPDF用）
+# =========================
+def set_japanese_font_for_matplotlib(debug=False):
+    import os
+    import matplotlib
+    from matplotlib import font_manager
+
+    # 文字化け（□）対策の基本
+    matplotlib.rcParams["axes.unicode_minus"] = False
+
+    here = os.path.dirname(__file__)
+    font_path = os.path.join(here, "fonts", "NotoSansjp-Regular.otf")
+
+    # （任意）デバッグ表示：本番は False のままでOK
+    if debug:
+        st.write("🔎 font_path =", font_path)
+        st.write("🔎 exists =", os.path.exists(font_path))
+        if os.path.exists(font_path):
+            try:
+                st.write("🔎 size(bytes) =", os.path.getsize(font_path))
+            except Exception as e:
+                st.write("🔎 size error =", e)
+
+    # 同梱フォントがある場合：これを最優先で使う
+    if os.path.exists(font_path):
+        font_manager.fontManager.addfont(font_path)
+        font_name = font_manager.FontProperties(fname=font_path).get_name()
+
+        # ここが肝：font.family / sans-serif を確実に Noto Sans JP にする
+        matplotlib.rcParams["font.family"] = "sans-serif"
+        matplotlib.rcParams["font.sans-serif"] = [font_name]
+
+        if debug:
+            st.write("✅ font_name =", font_name)
+            st.write("✅ rcParams font.family =", matplotlib.rcParams.get("font.family"))
+            st.write("✅ rcParams font.sans-serif =", matplotlib.rcParams.get("font.sans-serif"))
+
+        # ★戻り値：この FontProperties を make_chart_png で直指定する
+        return font_manager.FontProperties(fname=font_path)
+
+    # フォントが無い場合でも落とさず、候補を試す（ローカル向け保険）
+    candidates = [
+        "Yu Gothic", "Yu Gothic UI", "Meiryo", "MS Gothic", "MS PGothic",
+        "Hiragino Sans", "Noto Sans CJK JP", "IPAexGothic", "TakaoGothic"
+    ]
+    available = {f.name for f in font_manager.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            matplotlib.rcParams["font.family"] = name
+            matplotlib.rcParams["axes.unicode_minus"] = False
+            return font_manager.FontProperties(family=name)
+
+    # 何も見つからない場合でも返す（最悪でもクラッシュさせない）
+    return font_manager.FontProperties()
+
+
 def make_chart_png(df_long: pd.DataFrame, y_col: str, title: str) -> bytes:
-    set_japanese_font_for_matplotlib()
+    # ★本番は debug=False（画面ログ不要）。確認したいときだけ True。
+    fp = set_japanese_font_for_matplotlib(debug=False)
+
     fig = plt.figure(figsize=(10, 4.2))
     ax = fig.add_subplot(111)
+
+    # 0ライン（赤）
     ax.axhline(0, color="red", linewidth=2, linestyle="--")
+
+    # 線
     ax.plot(df_long["年目"], df_long[y_col], marker="o")
 
-    ax.set_title(title)
-    ax.set_xlabel("年目")
-    ax.set_ylabel("万円")
+    # ★ここが本命：フォントを「直指定」してオンラインでも日本語を強制
+    ax.set_title(title, fontproperties=fp)
+    ax.set_xlabel("年目", fontproperties=fp)
+    ax.set_ylabel("万円", fontproperties=fp)
+
+    # ★目盛りにもフォント直指定（念のため）
+    for lab in ax.get_xticklabels() + ax.get_yticklabels():
+        lab.set_fontproperties(fp)
+
     ax.grid(True)
 
     buf = BytesIO()
@@ -741,7 +816,6 @@ def make_chart_png(df_long: pd.DataFrame, y_col: str, title: str) -> bytes:
     fig.savefig(buf, format="png", dpi=200)
     plt.close(fig)
     return buf.getvalue()
-
 
 def build_pdf_bytes(
     df_view: pd.DataFrame,
