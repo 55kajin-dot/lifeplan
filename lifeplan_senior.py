@@ -709,7 +709,9 @@ def make_chart_png(df_long: pd.DataFrame, y_col: str, title: str) -> bytes:
     set_japanese_font_for_matplotlib()
     fig = plt.figure(figsize=(10, 4.2))
     ax = fig.add_subplot(111)
+    ax.axhline(0, color="red", linewidth=2, linestyle="--")
     ax.plot(df_long["年目"], df_long[y_col], marker="o")
+
     ax.set_title(title)
     ax.set_xlabel("年目")
     ax.set_ylabel("万円")
@@ -1281,6 +1283,9 @@ if submitted:
 df_long = st.session_state.get("result_long", None)
 df_table = st.session_state.get("result_table", None)
 
+df_long = st.session_state.get("result_long", None)
+df_table = st.session_state.get("result_table", None)
+
 if df_long is not None and df_table is not None:
     st.success("計算できました。")
 
@@ -1299,30 +1304,44 @@ if df_long is not None and df_table is not None:
 
     with tab2:
         st.subheader("グラフ① 年間現金収支")
-        chart_cash = (
+
+        line = (
             alt.Chart(df_long)
             .mark_line(point=True)
             .encode(
                 x=alt.X("年目:Q", title="年目"),
                 y=alt.Y("年間現金収支(万円):Q", title="万円"),
-                tooltip=[alt.Tooltip("年目:Q", title="年目"), alt.Tooltip("年間現金収支(万円):Q", title="万円")]
+                tooltip=[
+                    alt.Tooltip("年目:Q", title="年目"),
+                    alt.Tooltip("年間現金収支(万円):Q", title="万円"),
+                ],
             )
-            .properties(height=300)
         )
-        st.altair_chart(chart_cash, use_container_width=True)
+
+        zero_line = (
+            alt.Chart(pd.DataFrame({"y": [0]}))
+            .mark_rule(color="#ff0000", size=2, strokeDash=[6, 3])
+            .encode(y="y:Q")
+        )
+
+        st.altair_chart((line + zero_line).properties(height=300), use_container_width=True)
 
         st.subheader("グラフ② 貯蓄残高")
+
         chart_bal = (
             alt.Chart(df_long)
             .mark_line(point=True)
             .encode(
                 x=alt.X("年目:Q", title="年目"),
                 y=alt.Y("貯蓄残高(万円):Q", title="万円"),
-                tooltip=[alt.Tooltip("年目:Q", title="年目"), alt.Tooltip("貯蓄残高(万円):Q", title="万円")]
+                tooltip=[
+                    alt.Tooltip("年目:Q", title="年目"),
+                    alt.Tooltip("貯蓄残高(万円):Q", title="万円"),
+                ],
             )
-            .properties(height=300)
         )
-        st.altair_chart(chart_bal, use_container_width=True)
+
+        st.altair_chart((chart_bal + zero_line).properties(height=300), use_container_width=True)
 
     with tab3:
         st.subheader("家計へのアドバイス")
@@ -1343,9 +1362,12 @@ if df_long is not None and df_table is not None:
         st.subheader("相談の入口（ここから追加質問できます）")
         st.caption("下のテンプレをコピーして、このままChatGPTに貼ると、続きの相談がしやすくなります。")
 
+        inputs = st.session_state.get("inputs", None)
+
         if inputs is not None:
             min_bal = float(df_long["貯蓄残高(万円)"].min())
             deficit_count = int((df_long["年間現金収支(万円)"] < 0).sum())
+
             template = f"""【シニア夫婦LPS：相談テンプレ】
 - 夫: 現在{inputs['h_now']}歳 / 想定死亡{inputs['h_die']}歳
 - 妻: 現在{inputs['w_now']}歳 / 想定死亡{inputs['w_die']}歳
@@ -1370,7 +1392,7 @@ if df_long is not None and df_table is not None:
         user_q = st.text_area(
             "ここに質問を入力（任意）",
             height=120,
-            placeholder="例：赤字が続く年の対策を、生活費と介護費に分けて教えてください。"
+            placeholder="例：赤字が続く年の対策を、生活費と介護費に分けて教えてください。",
         )
 
         if user_q.strip():
@@ -1386,12 +1408,13 @@ if df_long is not None and df_table is not None:
     with c:
         st.download_button(
             label="PDFで保存",
-            data=st.session_state["pdf_bytes"],
+            data=st.session_state.get("pdf_bytes", b""),
             file_name="lifeplan_result.pdf",
             mime="application/pdf",
             use_container_width=True,
-            type="primary"
+            type="primary",
         )
+
 else:
     st.info("まだ計算していません。入力後、中央の「計算」ボタンを押してください。")
 
