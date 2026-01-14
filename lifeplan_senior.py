@@ -742,7 +742,7 @@ def set_japanese_font_for_matplotlib(debug=False):
     matplotlib.rcParams["axes.unicode_minus"] = False
 
     here = os.path.dirname(__file__)
-    font_path = os.path.join(here, "fonts", "NotoSansjp-Regular.otf")
+    font_path = os.path.join(here, "fonts", "NotoSansJP-Regular.otf")
 
     # （任意）デバッグ表示：本番は False のままでOK
     if debug:
