@@ -284,6 +284,25 @@ with t2:
 # matplotlib 日本語フォント（□対策）
 # =========================
 def set_japanese_font_for_matplotlib():
+    import os
+    import matplotlib
+    from matplotlib import font_manager
+
+    matplotlib.rcParams["axes.unicode_minus"] = False
+
+    here = os.path.dirname(__file__)
+
+    font_candidates = [
+        os.path.join(here, "fonts", "NotoSansjp-Regular.otf"),
+    ]
+
+    for fp in font_candidates:
+        if os.path.exists(fp):
+            font_manager.fontManager.addfont(fp)
+            font_name = font_manager.FontProperties(fname=fp).get_name()
+            matplotlib.rcParams["font.family"] = font_name
+            return
+
     candidates = [
         "Yu Gothic", "Yu Gothic UI", "Meiryo", "MS Gothic", "MS PGothic",
         "Hiragino Sans", "Noto Sans CJK JP", "IPAexGothic", "TakaoGothic"
