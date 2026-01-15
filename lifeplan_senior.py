@@ -1,5 +1,6 @@
 
 
+
 import streamlit as st
 import pandas as pd
 import html
@@ -1001,7 +1002,15 @@ def _get_row_vals(df_table: pd.DataFrame, label: str):
     return vals
 
 
-def make_money_advice_soft(df_long: pd.DataFrame, df_table: pd.DataFrame) -> List[str]:
+def make_money_advice_soft(
+    df_long: pd.DataFrame,
+    df_table: pd.DataFrame,
+    inputs: Optional[dict] = None
+) -> List[str]:
+    """
+    ✅ 計算結果(df_long, df_table, inputs)を“読むだけ”で文章を作る
+    ※計算式には一切影響しません（出力文章のみ更新）
+    """
     if df_long is None or len(df_long) == 0:
         return ["まだ計算結果がありません。入力後に「計算」を押してください。"]
 
@@ -1013,57 +1022,57 @@ def make_money_advice_soft(df_long: pd.DataFrame, df_table: pd.DataFrame) -> Lis
     last_bal = float(bal.iloc[-1])
 
     deficit_mask = cash < 0
-    deficit_years = years[deficit_mask].tolist()
     deficit_count = int(deficit_mask.sum())
+    total_deficit = float((-cash[deficit_mask]).sum()) if deficit_count > 0 else 0.0
 
+    # 連続赤字の最大
     max_streak = 0
-    best_end_idx = None
     cur = 0
-    for i, is_def in enumerate(deficit_mask.tolist()):
+    for is_def in deficit_mask.tolist():
         if is_def:
             cur += 1
-            if cur > max_streak:
-                max_streak = cur
-                best_end_idx = i
+            max_streak = max(max_streak, cur)
         else:
             cur = 0
 
-    total_deficit = float((-cash[deficit_mask]).sum()) if deficit_count > 0 else 0.0
+    # df_tableから行を取るユーティリティ
+    def _get_row_vals(label: str):
+        if df_table is None or label not in df_table.index:
+            return None
+        vals = []
+        for v in df_table.loc[label].tolist():
+            try:
+                vals.append(float(v) if v != "" else 0.0)
+            except:
+                vals.append(0.0)
+        return vals
 
-    worst_block_deficit = 0.0
-    worst_block_min_bal = None
-    worst_block_years = None
-    if max_streak and best_end_idx is not None:
-        start = best_end_idx - max_streak + 1
-        end = best_end_idx
-        block_cash = cash.iloc[start:end+1]
-        worst_block_deficit = float((-block_cash[block_cash < 0]).sum())
-        worst_block_min_bal = float(bal.iloc[start:end+1].min())
-        worst_block_years = (int(years.iloc[start]), int(years.iloc[end]))
+    care_h = _get_row_vals("介護費 夫") or [0.0]*len(years)
+    care_w = _get_row_vals("介護費 妻") or [0.0]*len(years)
+    spend_h = _get_row_vals("一時支出 夫") or [0.0]*len(years)
+    spend_w = _get_row_vals("一時支出 妻") or [0.0]*len(years)
 
-    care_h = _get_row_vals(df_table, "介護費 夫")
-    care_w = _get_row_vals(df_table, "介護費 妻")
-    spend_h = _get_row_vals(df_table, "一時支出 夫")
-    spend_w = _get_row_vals(df_table, "一時支出 妻")
-
-    item_rows = [_get_row_vals(df_table, nm) for nm in ITEMS]
-    living_total = None
+    # 生活費合計（年額）
+    item_rows = [_get_row_vals(nm) for nm in ITEMS]
     if all(r is not None for r in item_rows):
         living_total = [sum(r[i] for r in item_rows) for i in range(len(item_rows[0]))]
+    else:
+        living_total = [0.0]*len(years)
 
-    advice = []
+    care_total = [float(care_h[i]) + float(care_w[i]) for i in range(len(years))]
+    spend_total = [float(spend_h[i]) + float(spend_w[i]) for i in range(len(years))]
 
+    advice: List[str] = []
+
+    # 総評
     if min_bal < 0:
         neg_idx = [i for i, v in enumerate(bal.tolist()) if v < 0]
         first_neg = neg_idx[0] if neg_idx else None
         last_neg = neg_idx[-1] if neg_idx else None
-
         if first_neg is not None:
             first_year = int(years.iloc[first_neg])
             last_year = int(years.iloc[last_neg])
-
             stays_negative = all(v < 0 for v in bal.iloc[first_neg:].tolist())
-
             if stays_negative:
                 advice.append(f"🔴 {first_year}年目から貯蓄残高がマイナスに入り、その状態が最後まで続きます（資金ショート想定）。早めの手当てが必要です。")
             else:
@@ -1073,8 +1082,6 @@ def make_money_advice_soft(df_long: pd.DataFrame, df_table: pd.DataFrame) -> Lis
             advice.append("🟢 全体としてとても安定しています（残高も収支も大きな不安が出にくい形です）。")
         else:
             advice.append("🟠 年間収支が赤字になる年はありますが、残高がマイナスにはなっていません。落ち着いて確認していきましょう。")
-
-    if min_bal >= 0:
         advice.append("🌱 シミュレーション期間を通して、貯蓄残高はマイナスになっていません（資金ショートしにくい想定です）。")
 
     if deficit_count == 0:
@@ -1086,21 +1093,104 @@ def make_money_advice_soft(df_long: pd.DataFrame, df_table: pd.DataFrame) -> Lis
         )
 
     advice.append(f"🏁 最終年の貯蓄残高（目安）：{last_bal:,.1f} 万円")
+
+    # “原因の当たり”を具体化（最悪の年）
+    worst_idx = int(cash.idxmin())
+    worst_year = int(years.iloc[worst_idx])
+    worst_cash = float(cash.iloc[worst_idx])
+
+    lt = float(living_total[worst_idx])
+    ct = float(care_total[worst_idx])
+    stt = float(spend_total[worst_idx])
+
+    advice.append("—")
+    advice.append(f"🔎 赤字の要因チェック（目安）：いちばん厳しいのは {worst_year}年目（年間現金収支 {worst_cash:,.1f} 万円）です。")
+    advice.append(f"・内訳の目安：生活費 {lt:,.1f} 万円／介護費 {ct:,.1f} 万円／一時支出 {stt:,.1f} 万円")
+
+    # 生活費8項目のうち最大項目
+    if all(r is not None for r in item_rows):
+        vals = {ITEMS[i]: float(item_rows[i][worst_idx]) for i in range(len(ITEMS))}
+        max_item_name = max(vals, key=vals.get)
+        max_item_val = vals[max_item_name]
+        advice.append(f"・生活費8項目の中では「{max_item_name}」が {max_item_val:,.1f} 万円/年 と最も大きいです。")
+        advice.append("　もしこの項目（例：食費など）が平均よりかなり大きい設定なら、赤字の大きな原因となっている可能性があります。")
+
+    # ▼ 一時支出：年齢で具体表示（夫/妻/合計）
+    if inputs is not None:
+        h_sp_map = inputs.get("h_spend_map", {}) or {}
+        w_sp_map = inputs.get("w_spend_map", {}) or {}
+
+        if len(h_sp_map) > 0:
+            h_age_max = max(h_sp_map, key=lambda a: float(h_sp_map.get(a, 0.0)))
+            h_amt_max = float(h_sp_map.get(h_age_max, 0.0))
+            if h_amt_max > 0:
+                advice.append(f"・夫の一時支出では **{int(h_age_max)}歳の {h_amt_max:,.1f} 万円** が最大で、赤字の主要因になっている可能性があります。")
+
+        if len(w_sp_map) > 0:
+            w_age_max = max(w_sp_map, key=lambda a: float(w_sp_map.get(a, 0.0)))
+            w_amt_max = float(w_sp_map.get(w_age_max, 0.0))
+            if w_amt_max > 0:
+                advice.append(f"・妻の一時支出では **{int(w_age_max)}歳の {w_amt_max:,.1f} 万円** が最大で、赤字の主要因になっている可能性があります。")
+
+        merged = {}
+        for a, v in h_sp_map.items():
+            try:
+                merged[int(a)] = merged.get(int(a), 0.0) + float(v)
+            except:
+                pass
+        for a, v in w_sp_map.items():
+            try:
+                merged[int(a)] = merged.get(int(a), 0.0) + float(v)
+            except:
+                pass
+        if len(merged) > 0:
+            age_max = max(merged, key=lambda a: float(merged.get(a, 0.0)))
+            amt_max = float(merged.get(age_max, 0.0))
+            if amt_max > 0:
+                advice.append(f"・夫婦合計で見ると **{int(age_max)}歳の一時支出 {amt_max:,.1f} 万円** が最大です（時期調整だけでも改善することがあります）。")
+
+    # 介護費：最大年も表示
+    cmax = max(care_total) if care_total else 0.0
+    if cmax > 0:
+        cmax_idx = int(care_total.index(cmax))
+        advice.append(f"・介護費（夫婦合計）が最大なのは {int(years.iloc[cmax_idx])}年目で {cmax:,.1f} 万円です。高め設定なら赤字要因になりやすいので想定の妥当性を確認すると安心です。")
+
+    # 一時収入の影響（安定要因）
+    inc_lump_h = _get_row_vals("一時収入 夫") or [0.0]*len(years)
+    inc_lump_w = _get_row_vals("一時収入 妻") or [0.0]*len(years)
+    lump_sum = [float(inc_lump_h[i]) + float(inc_lump_w[i]) for i in range(len(years))]
+    lmax = max(lump_sum) if lump_sum else 0.0
+    if lmax > 0:
+        lmax_idx = int(lump_sum.index(lmax))
+        advice.append("—")
+        advice.append(f"💰 一時収入の影響：一時収入（夫婦合計）が最大なのは {int(years.iloc[lmax_idx])}年目で {lmax:,.1f} 万円です。")
+        advice.append("　退職金などの一時収入が大きい場合、家計の安定維持の大きな要因になっていることがあります。")
+
+    advice.append("—")
+    advice.append("🧭 もっと詳しく知りたい方は、この下の「相談の入り口」にお進みください。")
     advice.append("💡 ヒント：①一時支出は“時期調整”だけでも効きます ②生活費は“固定費”から ③介護費は少し多め想定で安心です")
     return advice
 
 
 def make_inheritance_advice_soft(inputs: dict, df_long: pd.DataFrame) -> List[str]:
+    """
+    ✅ 相続は“計算結果を読むだけ”で文章を作る（計算式には影響なし）
+    目的：
+    - 一次相続（先に亡くなる方）の時点で残高が多い場合の注意喚起
+    - 二次相続リスク（配偶者控除→次の相続で増える可能性）を明確に
+    - 相談導線の文言を追加・表現変更
+    """
     if inputs is None or df_long is None or len(df_long) == 0:
         return ["相続アドバイスは、計算後に表示されます。"]
 
     h_now, h_die = int(inputs["h_now"]), int(inputs["h_die"])
     w_now, w_die = int(inputs["w_now"]), int(inputs["w_die"])
 
+    # 何年目に死亡するか（到達しないならNone）
     h_year = (h_die - h_now + 1) if h_die >= h_now else None
     w_year = (w_die - w_now + 1) if w_die >= w_now else None
 
-    def bal_at(year_after: int):
+    def bal_at(year_after: Optional[int]):
         if year_after is None:
             return None
         if year_after < 1 or year_after > int(df_long["年目"].max()):
@@ -1110,9 +1200,26 @@ def make_inheritance_advice_soft(inputs: dict, df_long: pd.DataFrame) -> List[st
     h_bal = bal_at(h_year)
     w_bal = bal_at(w_year)
 
-    advice = []
+    # 一次相続：先に亡くなる方
+    first = None
+    if h_year is not None and w_year is not None:
+        if h_year < w_year:
+            first = ("夫", h_die, h_year, h_bal)
+            second = ("妻", w_die, w_year, w_bal)
+        elif w_year < h_year:
+            first = ("妻", w_die, w_year, w_bal)
+            second = ("夫", h_die, h_year, h_bal)
+        else:
+            first = ("同時期", None, h_year, None)
+            second = None
+    else:
+        first = None
+        second = None
+
+    advice: List[str] = []
     advice.append("🕊️ 相続については、まず『いつ頃』『どれくらい残る見込みか』をざっくり掴むだけでも大きな前進です。")
 
+    # それぞれの死亡時残高（目安）
     if h_year is not None:
         hb = (h_bal if h_bal is not None else 0.0)
         advice.append(f"・夫が {h_die}歳（{h_year}年目）時点の貯蓄残高目安：{hb:,.1f} 万円")
@@ -1120,15 +1227,33 @@ def make_inheritance_advice_soft(inputs: dict, df_long: pd.DataFrame) -> List[st
         wb = (w_bal if w_bal is not None else 0.0)
         advice.append(f"・妻が {w_die}歳（{w_year}年目）時点の貯蓄残高目安：{wb:,.1f} 万円")
 
-    last_bal = float(df_long["貯蓄残高(万円)"].iloc[-1])
-    if last_bal >= 3600.0:
-        advice.append("💰 最終的な貯蓄残高が3,600万円を超えそうです。ほかの資産（不動産・保険・有価証券等）を踏まえると、相続税が課税される可能性があります。『概算だけ』でも専門家に確認しておくと安心です。")
+    # 一次相続の注意喚起（残高が大きい場合）
+    # ※しきい値は「目安」：貯蓄だけで判断できないため、控えめに“可能性”表現
+    if first is not None and first[0] != "同時期":
+        who, die_age, year_after, balv = first
+        balv = float(balv) if balv is not None else 0.0
 
-    advice.append("🌿 次の3点を、できる範囲で整えておくと安心です：")
+        if balv >= 3600.0:
+            advice.append("—")
+            advice.append(f"⚠️ 一次相続の注意：{who}{die_age}歳での死亡時点（{year_after}年目）に、夫婦の貯蓄残高が {balv:,.1f} 万円ほど残る想定です。")
+            advice.append("　これが **すべて亡くなった方の名義** になっている場合、相続税がかかる可能性があります（他の資産も含めて要確認）。")
+            advice.append("　その場合は **二次相続対策も早めに** 考えておく必要があります。")
+
+            advice.append("—")
+            advice.append("📌 二次相続の注意点（超重要）：")
+            advice.append("・一次相続で、配偶者は『配偶者税額控除』を使って相続税をゼロにできる場合があります。")
+            advice.append("・しかしその結果、次に配偶者が亡くなる（二次相続）時に、配偶者の相続財産が大きく増え、二次相続での相続税が増える恐れがあります。ご注意ください。")
+
+    # 表現変更（ご要望どおり）
+    advice.append("—")
+    advice.append("🌿 さらに次の3点を、できる範囲で整えておくと安心です：")
     advice.append("　① 遺言（特に不動産がある場合は有効）")
     advice.append("　② もしもの時の連絡先・口座・保険・不動産情報の一覧（家族が困りにくくなります）")
     advice.append("　③ 生前贈与や名義の整理は『急がず、税や手間を見ながら』でOKです")
-    advice.append("📌 相続税が気になる規模になりそうなら、専門家に『概算だけ』相談しておくと、安心材料が増えます。")
+
+    advice.append("—")
+    advice.append("🧭 もっと詳しく知りたい方は、この下の「相談の入り口」にお進みください。")
+    advice.append("📌 これらについてもさらに詳しく知りたい方は、この下の「相談の入り口」よりお進みください。")
     return advice
 
 
@@ -1362,7 +1487,8 @@ if submitted:
 
     df_view = df_view_for_display(df_table)
 
-    money_lines = make_money_advice_soft(df_long, df_table)
+    money_lines = make_money_advice_soft(df_long, df_table, inputs)
+
     inh_lines = make_inheritance_advice_soft(inputs, df_long)
 
     st.session_state["pdf_bytes"] = build_pdf_bytes(
