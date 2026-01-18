@@ -1,6 +1,7 @@
 
 
 
+
 import streamlit as st
 import pandas as pd
 import html
@@ -1278,6 +1279,13 @@ with st.form("lifeplan_form", clear_on_submit=False):
         w_die = NI_INT("妻の死亡年齢", "w_die", 0, 120, DEFAULT["w_die"], 1)
     with c5:
         start_savings = NI_FLOAT("夫婦合計の現在貯蓄額（万円）", "start_savings", 0.0, 999999.0, DEFAULT["start_savings"], 0.1)
+    st.markdown(
+        '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+        '※日本人の平均寿命は男性が81.09歳、女性が87.13歳です(令和6(2024)年簡易生命表より)<br>'
+        '※60代夫婦の平均貯蓄額は、貯蓄ゼロ世帯を含めると1,819万円です。ただし、一部の世帯が高額な貯蓄を保有していることで平均値が引き上げられているため、より実態に近いとされる中央値は700万円となっています。(金融広報中央委員会の調査)'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
     st.divider()
 
@@ -1363,6 +1371,61 @@ with st.form("lifeplan_form", clear_on_submit=False):
 
         living_sum_now_m += float(m)
         living_sum_after_m += float(m2)
+        if name == "食費":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※平均的な食費の月額は、60代夫婦=87,800円、70代夫婦=72,900円となっています(推計）'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        if name == "水道光熱費":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※平均的な水道光熱費の月額は、60代夫婦=25,200円、70代夫婦=20,900円となっています(推計）'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        if name == "通信費":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※平均的な通信費の月額は、夫婦合計で1.2～1.8万円程度となっています(推計）'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        if name == "交通費":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※平均的な交通費の月額は、夫婦合計で60代なら1.4～2.0万円、70代なら0.8～1.5万円となっています(推計)'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        if name == "趣味・交際費":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※65歳以上の夫婦世帯の教養・娯楽費の月額は、約25,377円／月となっています。(総務省「家計調査」)'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        if name == "医療費":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※65歳以上の夫婦世帯の医療費の月額は、約16,879円となっています。(総務省「家計調査」)'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        if name == "住宅の固定資産税・管理費等":
+            st.markdown(
+                '<div style="font-size:0.80rem;color:#666;margin-top:-0.35rem;">'
+                '※平均的な月額は、持家(戸建て)の固定資産税が0.5～2.0万円、マンションの管理費・修繕積立金が2.0～4.0万円、賃貸家賃で6.0～12.0万円となっており、築年数や地域によってその格差が大きいです。(推計)'
+                '</div>',
+                unsafe_allow_html=True
+            )
 
         if name == "その他":
             st.markdown(
@@ -1388,10 +1451,16 @@ with st.form("lifeplan_form", clear_on_submit=False):
         single_ratio_pct = NI_INT("", "single_ratio_pct", 0, 200, DEFAULT["single_ratio_pct"], 1, label_visibility="collapsed")
         st.markdown(
             '<div style="font-size:0.85rem;color:#666;margin-top:-0.25rem;">'
-            '※夫婦世帯最終年の生活費に対する割合を入力してください'
+            '※夫婦世帯最終年の生活費に対する割合を入力。平均は約58％となっています(総務省　「家計調査」)'
             '</div>',
             unsafe_allow_html=True
         )
+    st.markdown(
+        '<div style="font-size:0.80rem;color:#666;margin-top:-0.20rem;">'
+        '※60代夫婦＝月29.5万円、70代夫婦＝月24.5万円（推計の総額）'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
     st.divider()
 
